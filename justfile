@@ -1,7 +1,7 @@
 set shell := ["nu", "-c"]
 
 main *args:
-    @ python dome/main.py {{args}}
+    @ python deployer/main.py {{args}}
 
 test:
     @ pytest tests

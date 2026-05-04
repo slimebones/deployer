@@ -3,12 +3,12 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "dome"
+name = "deployer"
 version = "1.2.0"
 dynamic = ["dependencies"]
 
 [project.scripts]
-dome = "dome.main:main"
+deployer = "deployer.main:main"
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}

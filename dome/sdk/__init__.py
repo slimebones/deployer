@@ -21,7 +21,7 @@ import colorama
 import httpx
 
 from dome import core
-from dome.model import Model
+from dome.core.model import Model
 from dome.project import Project
 
 

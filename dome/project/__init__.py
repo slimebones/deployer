@@ -4,7 +4,7 @@ import re
 from types import ModuleType
 
 from dome import core
-from dome.model import Model
+from dome.core.model import Model
 from dome.runargs import RunArgs
 
 
