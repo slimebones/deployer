@@ -151,27 +151,16 @@ dome vc update
 
 Updates changes from version control. Works like a `git pull` if applicable to Git.
 
-#### template
-
-```
-dome template
-```
-
-Makes use of a templates inside a project.
-
-Work Under Progress: this module is in development.
-
-
 ## Structure of `project.py`
 
-File `project.py` is normal python script, which can define various objects, as well as import stuff. The minimal `project.py` looks just like this (domain definition is optional):
+File `project.py` is a normal python script, which can define various objects, as well as import stuff. The minimal `project.py` looks just like this:
 ```python
-id = "my_domain.my_project"
+project_id = "my_project"
 ```
 
 Yes, the `id` is the bare-minimum for starting a project. Everything beyond that is custom-space: everything that is needed for the project technical management.
 
-Any defined here object without leading underscore will be available for the external commands.
+Any defined here object without leading underscore will be available for the external commands. Everything prefixed with a `project_` is **reserved**.
 
 ### SDK
 

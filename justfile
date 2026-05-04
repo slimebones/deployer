@@ -4,7 +4,7 @@ main *args:
     @ python dome/main.py {{args}}
 
 test:
-    @ pytest
+    @ pytest tests
 
 install:
     @ pip install -e .

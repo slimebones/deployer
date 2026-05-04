@@ -12,6 +12,10 @@ import subprocess
 import tarfile
 import time
 from typing import TYPE_CHECKING, Callable
+try:
+    from typing import deprecated  # type: ignore[attr-defined]
+except ImportError:
+    from typing_extensions import deprecated
 
 import colorama
 import httpx
@@ -66,6 +70,7 @@ def generate_build_info(target: PathLike | str):
         f.write(content)
 
 
+@deprecated("dome.sdk.generate_codes() is deprecated and will be removed in a future release.")
 def generate_codes(target: PathLike | str):
     """
     Builds a codesheet.

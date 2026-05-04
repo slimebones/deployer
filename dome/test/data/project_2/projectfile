@@ -1,9 +1,0 @@
-project = @import("project")
-id = "project_1"
-
-build = fn () {
-    project.info("build.py")
-    project.code("codes.py")
-
-    project.includePython()
-}

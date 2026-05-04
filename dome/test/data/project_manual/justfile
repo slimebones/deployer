@@ -1,2 +1,0 @@
-main *t:
-    @ ../../../.venv/Scripts/python.exe ../../../main.py {{t}}

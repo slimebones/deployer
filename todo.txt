@@ -1,0 +1,11 @@
+dome: release module
+dome: template module
+dome package
+dome: status should not count nested projects information, but display them as nested projects count
+dome: correct commit message with just short file iteration, no need for word "Update ..."
+dome: execute -a command should not give an error if any project does not contain such a command
+dome: execute should show "Success!" in green or blue colors at the end
+dome execute -i generate-build-info: execute inline sdk command
+in short: rebuild dome status, write own code
+    fix dome stat is not displayed for projects without git repo
+    dome stat works only for files that are commited to the tree
