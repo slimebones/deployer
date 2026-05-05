@@ -16,7 +16,7 @@ import uuid
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Generic, Sequence, TypeVar
+from typing import Any, Awaitable, Callable, Generic, Self, Sequence, TypeVar
 
 import aiofiles
 import colorama
@@ -38,15 +38,30 @@ class CodeError(Exception):
     """
     All custom errors in our systems are represented by this base class. The main feature is the combination of code and message, which is crucial for network interactions as defined by our standards..
     """
+
     def __init__(self, code: int = 1, *args):
         if code == 0:
-            raise Exception(f"CodeError code cannot be OK")
+            raise Exception("CodeError code cannot be OK")
         super().__init__(code, *args)
         self.code = code
         self.message = "; ".join([str(x) for x in args])
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__} #{self.code}: {self.message or '*empty message*'}"
+
+
+class Model(BaseModel):
+    def to_bytes(self) -> bytes:
+        return json_to_bytes(self.model_dump())
+
+    @classmethod
+    def from_bytes(cls, d: bytes) -> Self:
+        return bytes_to_model(cls, d)
+
+
+class ArbModel(Model):
+    class Config:
+        arbitrary_types_allowed = True
 
 
 def debug(message: Any):
@@ -97,7 +112,7 @@ def save(domain: str, type: str, message: str, trace_id: str | None, trace_path:
         trace_message = f" (trace '{trace_path}')"
     elif trace_id:
         trace_message = f" (trace '{trace_id}')"
-    message =  f"{message} {trace_message}"
+    message = f"{message} {trace_message}"
 
     # Nested into struct message do not need newline.
     message = message.strip()
@@ -291,7 +306,7 @@ class Reader:
         self.b = b
 
     def read(self, size: int) -> bytes:
-        r = self.b[self.i:self.i+size]
+        r = self.b[self.i:self.i + size]
         self.i += size
         if len(r) == 0:
             raise StopIteration
@@ -311,6 +326,8 @@ class Vector2:
 
 
 T = TypeVar("T")
+
+
 class Signal(Generic[T]):
     def __init__(self):
         self._listeners = []
@@ -368,6 +385,7 @@ def random_vector2(v1: Vector2, v2: Vector2) -> Vector2:
     y = random_float(v1.y, v2.y)
     return Vector2(x, y)
 
+
 def random_vector2_from_float_lists(min: list[float], max: list[float]) -> Vector2:
     min_vector = Vector2(min[0], min[1])
     max_vector = Vector2(max[0], max[1])
@@ -379,7 +397,6 @@ def config_get(section: str, key: str, default: str = "") -> str:
 
 
 def init(project_name: str):
-
     # Location
     homedir = Path.home()
     # Define user dir:
@@ -389,9 +406,8 @@ def init(project_name: str):
     if os.name == "nt":  # Windows.
         _user_path = Path(homedir, "AppData", "Roaming", project_name)
     else:  # Linux or macOS.
-        _user_path = Path(homedir, "."+project_name)
+        _user_path = Path(homedir, "." + project_name)
     _user_path.mkdir(parents=True, exist_ok=True)
-
 
     # Config
     path = user("user.cfg")
@@ -400,7 +416,6 @@ def init(project_name: str):
     global _config
     _config = configparser.ConfigParser()
     _config.read(path, "utf-8")
-
 
     # Log
     rotation_str = config_get("log", "rotation", "10MB")

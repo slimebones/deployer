@@ -1,11 +1,11 @@
 import importlib.util
-from pathlib import Path
 import re
+from pathlib import Path
 from types import ModuleType
 
-from dome import core
-from dome.core.model import Model
-from dome.runargs import RunArgs
+from deployer import core
+from deployer.core import Model
+from deployer.runargs import RunArgs
 
 
 class Project(Model):
@@ -31,7 +31,6 @@ class Project(Model):
 
 def _is_valid_id(id_string: str) -> bool:
     pattern = r"^[a-z-][a-z0-9-]*$"
-
     return bool(re.match(pattern, id_string))
 
 
@@ -44,13 +43,12 @@ def parse(path: Path, args: RunArgs) -> tuple[Project, ModuleType] | None:
     spec.loader.exec_module(module)
 
     # @todo enumerate all project_ fields and error on unreserved use
-
     project_id = getattr(module, "project_id", None)
     if project_id is None:
-        core.error(f"project.py must define 'id'")
+        core.error("project.py must define 'id'")
         return
     if not isinstance(project_id, str):
-        core.error(f"project.py:id must be a string")
+        core.error("project.py:id must be a string")
         return
     project_id = project_id.strip().lower()
     if not _is_valid_id(project_id):
@@ -58,38 +56,39 @@ def parse(path: Path, args: RunArgs) -> tuple[Project, ModuleType] | None:
 
     domain = getattr(module, "project_domain", None)
     if domain is not None and not isinstance(domain, str):
-        core.error(f"project.py:domain must be a string")
+        core.error("project.py:domain must be a string")
         return
     name = getattr(module, "project_name", None)
     if name is not None and not isinstance(name, str):
-        core.error(f"project.py:name must be a string")
+        core.error("project.py:name must be a string")
         return
     if name is not None:
         name = name.strip()
     description = getattr(module, "project_description", None)
     if description is not None and not isinstance(description, str):
-        core.error(f"project.py:description must be a string")
+        core.error("project.py:description must be a string")
         return
     if description is not None:
         description = description.strip()
 
-    return Project(
-        id=project_id,
-        domain=domain,
-        name=name,
-        description=description,
-        args=vars(args.args),
-        cwd=args.cwd,
-        version=args.version,
-        debug=args.debug,
-        mode=args.mode,
-
-        file_path=path,
-        # for now we always use "build" here. Maybe forever - we want standard practice applied.
-        build_dir=Path(path.parent, "build"),
-        source_dir=path.parent,
-
-        umbrella_file_path=args.projectfile,
-        umbrella_build_dir=args.build_dir,
-        umbrella_source_dir=args.source,
-    ), module
+    return (
+        Project(
+            id=project_id,
+            domain=domain,
+            name=name,
+            description=description,
+            args=vars(args.args),
+            cwd=args.cwd,
+            version=args.version,
+            debug=args.debug,
+            mode=args.mode,
+            file_path=path,
+            # for now we always use "build" here. Maybe forever - we want standard practice applied.
+            build_dir=Path(path.parent, "build"),
+            source_dir=path.parent,
+            umbrella_file_path=args.projectfile,
+            umbrella_build_dir=args.build_dir,
+            umbrella_source_dir=args.source,
+        ),
+        module,
+    )

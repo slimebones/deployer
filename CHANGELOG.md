@@ -1,5 +1,4 @@
-- `open` command added
-- deprecate `sdk.generate_codes()`
+- rebuilding to Deployer
 
 # 1.2.0, 16 April 2026
 

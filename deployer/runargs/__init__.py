@@ -1,7 +1,8 @@
 import argparse
 from pathlib import Path
 from typing import Callable
-from dome.core.model import Model
+
+from deployer.core import Model
 
 
 class RunArgs(Model):

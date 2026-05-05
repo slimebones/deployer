@@ -1,4 +1,4 @@
 """Compatibility SDK surface for deploy scripts."""
 
-from dome.sdk import *  # noqa: F403
+from deployer.sdk import *  # noqa: F403
 

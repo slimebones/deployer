@@ -2,6 +2,36 @@
 
 `deployer` is a deployment-oriented CLI.
 
+## Installation
+
+### Normal install (use as a CLI)
+
+Install from PyPI:
+
+```bash
+python -m pip install deployer
+```
+
+Then verify:
+
+```bash
+deployer version
+```
+
+### Editable install (for local development)
+
+Clone the repository, then install in editable mode from the project root:
+
+```bash
+python -m pip install -e .
+```
+
+Then verify:
+
+```bash
+deployer version
+```
+
 ## CLI
 
 ```bash
