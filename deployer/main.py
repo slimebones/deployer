@@ -8,12 +8,16 @@ import inspect
 import os
 import re
 import sys
+import traceback
 from pathlib import Path
 from types import ModuleType
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
+
+from deployer.project import Project
+from deployer.sdk import _set_project
 
 __version__ = "1.2.0"
 
@@ -24,18 +28,11 @@ PROJECT_ID_PATTERN = re.compile(
 
 def _build_cli_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="deployer")
-    subparsers = parser.add_subparsers(dest="command", required=True)
-
-    common = argparse.ArgumentParser(add_help=False)
-    common.add_argument("-d", "--debug", action="store_true", default=False)
-    common.add_argument("-m", "--mode", default="default")
-
-    run_parser = subparsers.add_parser("run", parents=[common])
-    run_parser.add_argument("-t", "--target", default=".")
-    run_all_parser = subparsers.add_parser("run-all", parents=[common])
-    run_all_parser.add_argument("-t", "--target", default=".")
-
-    subparsers.add_parser("version", parents=[common])
+    parser.add_argument("-d", "--debug", action="store_true", default=False)
+    parser.add_argument("-m", "--mode", default="default")
+    parser.add_argument("-t", "--target", default=".")
+    parser.add_argument("-v", "--version", dest="project_version", default="0.0.0")
+    parser.add_argument("command", choices=["run", "run-all", "version"])
     return parser
 
 
@@ -61,6 +58,34 @@ def _parse_extra_tokens(tokens: list[str]) -> tuple[list[str], dict[str, str | b
         args.append(token)
         i += 1
     return args, kwargs
+
+
+def _load_dotenv(target_dir: Path) -> dict[str, str]:
+    dotenv_path = target_dir / ".env"
+    if not dotenv_path.exists():
+        return {}
+
+    values: dict[str, str] = {}
+    for raw_line in dotenv_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line.removeprefix("export ").strip()
+        if "=" not in line:
+            continue
+
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+        if not key:
+            continue
+        if (value.startswith('"') and value.endswith('"')) or (
+            value.startswith("'") and value.endswith("'")
+        ):
+            value = value[1:-1]
+        values[key] = value
+    return values
 
 
 def _load_project_config(target_dir: Path) -> str:
@@ -131,18 +156,46 @@ async def _run() -> None:
 
         args, kwargs = _parse_extra_tokens(extra)
         run_all = parsed.command == "run-all"
-        for project_dir in _resolve_targets(target_dir, run_all):
-            _load_project_config(project_dir)
-            module = _load_deploy_module(project_dir)
-            main = _resolve_main(module)
-            old_cwd = Path.cwd()
-            try:
-                # Execute each deploy.py from its own project directory.
-                # This matches expectation for relative file operations in deploy scripts.
-                os.chdir(project_dir)
-                await main(*args, **kwargs)
-            finally:
-                os.chdir(old_cwd)
+        base_env = dict(os.environ)
+        try:
+            for project_dir in _resolve_targets(target_dir, run_all):
+                os.environ.clear()
+                os.environ.update(base_env)
+                os.environ.update(_load_dotenv(project_dir))
+
+                project_id = _load_project_config(project_dir)
+                module = _load_deploy_module(project_dir)
+                main = _resolve_main(module)
+                deploy_path = project_dir / "deploy.py"
+                project_context = Project(
+                    id=project_id,
+                    domain=None,
+                    name=None,
+                    description=None,
+                    args=kwargs,
+                    cwd=project_dir,
+                    version=parsed.project_version,
+                    debug=parsed.debug,
+                    mode=parsed.mode,
+                    file_path=deploy_path,
+                    source_dir=project_dir,
+                    build_dir=project_dir / "build",
+                    umbrella_file_path=deploy_path,
+                    umbrella_build_dir=project_dir / "build",
+                    umbrella_source_dir=project_dir,
+                )
+                _set_project(project_context)
+                old_cwd = Path.cwd()
+                try:
+                    # Execute each deploy.py from its own project directory.
+                    # This matches expectation for relative file operations in deploy scripts.
+                    os.chdir(project_dir)
+                    await main(*args, **kwargs)
+                finally:
+                    os.chdir(old_cwd)
+        finally:
+            os.environ.clear()
+            os.environ.update(base_env)
         return
 
     raise ValueError(f"unknown command '{parsed.command}'")
@@ -164,9 +217,9 @@ def _resolve_targets(target_dir: Path, run_all: bool) -> list[Path]:
 def main() -> None:
     try:
         asyncio.run(_run())
-    except Exception as e:
-        print(f"error: {e}", file=sys.stderr)
-        raise SystemExit(1) from e
+    except Exception:
+        traceback.print_exc()
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

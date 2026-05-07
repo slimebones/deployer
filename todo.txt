@@ -1,1 +1,3 @@
+show commands output as it goes, try again to implement that
 release functionality
+add possibility to call after() in async def main() - e.g. to restore build.ts dev file state
