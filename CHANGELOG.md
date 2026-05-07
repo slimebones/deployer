@@ -1,3 +1,5 @@
+# 2.0.0, 7 May 2026
+
 - rebuilding to Deployer
 
 # 1.2.0, 16 April 2026
