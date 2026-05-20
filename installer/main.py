@@ -119,9 +119,9 @@ def _load_project_config(target_dir: Path) -> DeployTargetConfig:
         raise ValueError(
             "project id must follow 'companyname.projectname' with both names in kebab-case lowercase"
         )
-    name = _cfg_scalar(sec, "name")
+    name = target_dir.name
     if not name:
-        raise ValueError("project.cfg must define non-empty [project].name")
+        raise ValueError("project directory name must be non-empty")
     version = _cfg_scalar(sec, "version")
     if not version:
         raise ValueError("project.cfg must define non-empty [project].version")

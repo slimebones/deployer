@@ -52,12 +52,11 @@ installer version [-d] [-m MODE]
 ```cfg
 [project]
 id = company-name.project-name
-name = Human readable project name
 version = 1.0.0
 ```
 
 - `id` must contain exactly two kebab-case lowercase parts: `company.project`.
-- `name` is the deployed project’s display name; `installer.sdk.project().name` exposes it to `install.py` scripts.
+- `name` is the directory that contains `project.cfg`; `installer.sdk.project().name` exposes it to `install.py` scripts.
 - `version` is the deployed project’s version string (read into `installer.sdk.project().version`); it is not the `installer` CLI tool version.
 
 ### `install.py`

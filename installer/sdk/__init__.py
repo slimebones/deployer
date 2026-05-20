@@ -206,8 +206,12 @@ class Host:
         if retcode != 0:
             raise Exception(f"[host {self._host}] scp failed with retcode {retcode} and error {stderr}")
 
-    def request(self, url: str, **kwargs) -> httpx.Response:
-        return httpx.post(url, **kwargs)
+    def request(self, port: int, route: str, **kwargs) -> httpx.Response:
+        """
+        Send a request to the host.
+        """
+        route = route.lstrip("/")
+        return httpx.post(f"http://{self._host}:{port}/{route}", **kwargs)
 
     def must_execute(self, command: str, **kwargs) -> tuple[str, str]:
         retcode, stdout, stderr = self.execute(command, **kwargs)
@@ -237,7 +241,7 @@ class Host:
             response_message += f", cwd '{cwd}'"
         print(response_message)
 
-        r = self.request(f"http://{self._host}:{port}/main/execute", json=payload, headers={"secret": self._executor_secret})
+        r = self.request(port, "main/execute", json=payload, headers={"secret": self._executor_secret})
         if r.status_code != 200:
             raise Exception(f"status error while executing: status {r.status_code}, text {r.text}")
 

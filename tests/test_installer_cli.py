@@ -12,10 +12,9 @@ INSTALLER_MAIN = REPO_ROOT / "installer" / "main.py"
 def _project_cfg(
     project_id: str = "company-name.project-name",
     *,
-    name: str = "Test Project",
     version: str = "0.1.0",
 ) -> str:
-    return f"[project]\nid = {project_id}\nname = {name}\nversion = {version}\n"
+    return f"[project]\nid = {project_id}\nversion = {version}\n"
 
 
 def run_installer(args: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
@@ -61,24 +60,9 @@ def test_requires_valid_project_id(tmp_path: Path) -> None:
     assert "kebab-case lowercase" in result.stderr
 
 
-def test_requires_project_name(tmp_path: Path) -> None:
-    (tmp_path / "project.cfg").write_text(
-        "[project]\nid = company-name.project-name\nversion = 1.0.0\n",
-        encoding="utf-8",
-    )
-    (tmp_path / "install.py").write_text(
-        "async def main(*args, **kwargs):\n    return None\n",
-        encoding="utf-8",
-    )
-
-    result = run_installer(["run"], cwd=tmp_path)
-    assert result.returncode == 1
-    assert "[project].name" in result.stderr
-
-
 def test_requires_project_version(tmp_path: Path) -> None:
     (tmp_path / "project.cfg").write_text(
-        "[project]\nid = company-name.project-name\nname = My App\n",
+        "[project]\nid = company-name.project-name\n",
         encoding="utf-8",
     )
     (tmp_path / "install.py").write_text(
@@ -115,11 +99,11 @@ def test_run_all_executes_nested_projects(tmp_path: Path) -> None:
     child.mkdir()
 
     (root / "project.cfg").write_text(
-        _project_cfg("company.root", name="Root", version="1.0.0"),
+        _project_cfg("company.root", version="1.0.0"),
         encoding="utf-8",
     )
     (child / "project.cfg").write_text(
-        _project_cfg("company.child", name="Child", version="2.0.0"),
+        _project_cfg("company.child", version="2.0.0"),
         encoding="utf-8",
     )
 
@@ -156,11 +140,11 @@ def test_run_does_not_execute_nested_projects(tmp_path: Path) -> None:
     child.mkdir()
 
     (root / "project.cfg").write_text(
-        _project_cfg("company.root", name="Root", version="1.0.0"),
+        _project_cfg("company.root", version="1.0.0"),
         encoding="utf-8",
     )
     (child / "project.cfg").write_text(
-        _project_cfg("company.child", name="Child", version="2.0.0"),
+        _project_cfg("company.child", version="2.0.0"),
         encoding="utf-8",
     )
 
@@ -210,12 +194,14 @@ async def main(*args, **kwargs) -> None:
     assert (tmp_path / "project-id.txt").read_text(encoding="utf-8") == "company-name.project-name"
 
 
-def test_sdk_project_name_from_cfg(tmp_path: Path) -> None:
-    (tmp_path / "project.cfg").write_text(
-        _project_cfg(name="My Deployed App", version="3.2.1"),
+def test_sdk_project_name_from_directory(tmp_path: Path) -> None:
+    project_dir = tmp_path / "my-deployed-app"
+    project_dir.mkdir()
+    (project_dir / "project.cfg").write_text(
+        _project_cfg(version="3.2.1"),
         encoding="utf-8",
     )
-    (tmp_path / "install.py").write_text(
+    (project_dir / "install.py").write_text(
         """
 import installer.sdk as sdk
 from pathlib import Path
@@ -228,9 +214,9 @@ async def main(*args, **kwargs) -> None:
         encoding="utf-8",
     )
 
-    result = run_installer(["run"], cwd=tmp_path)
+    result = run_installer(["run"], cwd=project_dir)
     assert result.returncode == 0, result.stderr
-    assert (tmp_path / "meta.txt").read_text(encoding="utf-8") == "My Deployed App|3.2.1"
+    assert (project_dir / "meta.txt").read_text(encoding="utf-8") == "my-deployed-app|3.2.1"
 
 
 def test_global_flags_before_command_are_applied(tmp_path: Path) -> None:
@@ -302,11 +288,11 @@ def test_dotenv_isolated_between_run_all_projects(tmp_path: Path) -> None:
     child.mkdir()
 
     (root / "project.cfg").write_text(
-        _project_cfg("company.root", name="Root", version="1.0.0"),
+        _project_cfg("company.root", version="1.0.0"),
         encoding="utf-8",
     )
     (child / "project.cfg").write_text(
-        _project_cfg("company.child", name="Child", version="2.0.0"),
+        _project_cfg("company.child", version="2.0.0"),
         encoding="utf-8",
     )
     (root / ".env").write_text("SHARED_KEY=root-value\n", encoding="utf-8")

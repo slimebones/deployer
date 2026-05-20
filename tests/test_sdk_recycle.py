@@ -13,7 +13,7 @@ INSTALLER_MAIN = REPO_ROOT / "installer" / "main.py"
 
 
 def _project_cfg() -> str:
-    return "[project]\nid = company-name.project-name\nname = Test\nversion = 1.0.0\n"
+    return "[project]\nid = company-name.project-name\nversion = 1.0.0\n"
 
 
 def run_installer(args: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
