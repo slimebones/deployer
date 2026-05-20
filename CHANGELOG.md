@@ -1,5 +1,6 @@
 - rebrand to Installer
 - version now is taken from project.cfg
+- legendary sdk with powerful HOST
 
 # 2.0.0, 7 May 2026
 
