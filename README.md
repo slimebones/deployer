@@ -52,9 +52,13 @@ deployer version [-d] [-m MODE]
 ```cfg
 [project]
 id = company-name.project-name
+name = Human readable project name
+version = 1.0.0
 ```
 
-`id` must contain exactly two kebab-case lowercase parts: `company.project`.
+- `id` must contain exactly two kebab-case lowercase parts: `company.project`.
+- `name` is the deployed project’s display name; `deployer.sdk.project().name` exposes it to `deploy.py` scripts.
+- `version` is the deployed project’s version string (read into `deployer.sdk.project().version`); it is not the `deployer` CLI tool version.
 
 ### `deploy.py`
 

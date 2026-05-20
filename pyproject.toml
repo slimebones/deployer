@@ -5,13 +5,17 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "deployer"
 version = "1.2.0"
-dynamic = ["dependencies"]
+dependencies = [
+  "pydantic",
+  "colorama",
+  "aiofiles",
+  "httpx",
+  "python-dotenv",
+  "pytest",
+]
 
 [project.scripts]
 deployer = "deployer.main:main"
-
-[tool.setuptools.dynamic]
-dependencies = {file = ["requirements.txt"]}
 
 [tool.setuptools]
 packages = {find = {}}

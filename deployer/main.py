@@ -11,6 +11,7 @@ import sys
 import traceback
 from pathlib import Path
 from types import ModuleType
+from typing import NamedTuple
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
@@ -26,12 +27,24 @@ PROJECT_ID_PATTERN = re.compile(
 )
 
 
+class DeployTargetConfig(NamedTuple):
+    id: str
+    name: str
+    version: str
+
+
+def _cfg_scalar(section: configparser.SectionProxy, key: str) -> str:
+    raw = section.get(key, "").strip()
+    if len(raw) >= 2 and raw[0] == raw[-1] and raw[0] in "\"'":
+        raw = raw[1:-1].strip()
+    return raw
+
+
 def _build_cli_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="deployer")
     parser.add_argument("-d", "--debug", action="store_true", default=False)
     parser.add_argument("-m", "--mode", default="default")
     parser.add_argument("-t", "--target", default=".")
-    parser.add_argument("-v", "--version", dest="project_version", default="0.0.0")
     parser.add_argument("command", choices=["run", "run-all", "version"])
     return parser
 
@@ -88,7 +101,7 @@ def _load_dotenv(target_dir: Path) -> dict[str, str]:
     return values
 
 
-def _load_project_config(target_dir: Path) -> str:
+def _load_project_config(target_dir: Path) -> DeployTargetConfig:
     cfg_path = target_dir / "project.cfg"
     if not cfg_path.exists():
         raise FileNotFoundError(f"project config is not found: '{cfg_path}'")
@@ -98,14 +111,21 @@ def _load_project_config(target_dir: Path) -> str:
 
     if "project" not in parser:
         raise ValueError("project.cfg must contain [project] section")
-    project_id = parser["project"].get("id", "").strip()
+    sec = parser["project"]
+    project_id = _cfg_scalar(sec, "id")
     if not project_id:
         raise ValueError("project.cfg must define [project].id")
     if PROJECT_ID_PATTERN.fullmatch(project_id) is None:
         raise ValueError(
             "project id must follow 'companyname.projectname' with both names in kebab-case lowercase"
         )
-    return project_id
+    name = _cfg_scalar(sec, "name")
+    if not name:
+        raise ValueError("project.cfg must define non-empty [project].name")
+    version = _cfg_scalar(sec, "version")
+    if not version:
+        raise ValueError("project.cfg must define non-empty [project].version")
+    return DeployTargetConfig(id=project_id, name=name, version=version)
 
 
 def _load_deploy_module(target_dir: Path) -> ModuleType:
@@ -163,18 +183,18 @@ async def _run() -> None:
                 os.environ.update(base_env)
                 os.environ.update(_load_dotenv(project_dir))
 
-                project_id = _load_project_config(project_dir)
+                cfg = _load_project_config(project_dir)
                 module = _load_deploy_module(project_dir)
                 main = _resolve_main(module)
                 deploy_path = project_dir / "deploy.py"
                 project_context = Project(
-                    id=project_id,
+                    id=cfg.id,
                     domain=None,
-                    name=None,
+                    name=cfg.name,
                     description=None,
                     args=kwargs,
                     cwd=project_dir,
-                    version=parsed.project_version,
+                    version=cfg.version,
                     debug=parsed.debug,
                     mode=parsed.mode,
                     file_path=deploy_path,

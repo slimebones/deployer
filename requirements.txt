@@ -1,6 +1,0 @@
-pydantic
-colorama
-aiofiles
-httpx
-python-dotenv
-pytest
