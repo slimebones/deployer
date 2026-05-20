@@ -46,7 +46,7 @@ def test_trash_via_install_run(tmp_path: Path) -> None:
 import installer.sdk as sdk
 
 async def main(*args, **kwargs) -> None:
-    sdk.recycle("remove.txt")
+    sdk.Host.current().recycle("remove.txt")
 """.strip()
         + "\n",
         encoding="utf-8",

@@ -75,3 +75,5 @@ Use:
 ```python
 import installer.sdk as sdk
 ```
+
+See [docs/sdk.md](docs/sdk.md) for the full API (project info, build helpers, and `Host` for local/remote commands).

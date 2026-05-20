@@ -9,7 +9,7 @@ dependencies = [
   "pydantic",
   "colorama",
   "aiofiles",
-  "httpx",
+  "paramiko",
   "python-dotenv",
   "pytest",
 ]

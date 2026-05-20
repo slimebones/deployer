@@ -1,40 +1,31 @@
 # PathLike | str combination is used due to problems with Pylance
 
-import argparse
 import json
 import os
-import re
 import shutil
-import subprocess
-import tarfile
 import time
 from contextvars import ContextVar
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable
 
-try:
-    from typing import deprecated  # type: ignore[attr-defined]
-except ImportError:
-    from typing_extensions import deprecated
-
-import colorama
-import httpx
-
-from installer import core
 from installer.core import Model
 from installer.project import Project
-from installer.sdk._recycle import send_to_recycle
+from installer.sdk._host import Host
 
 __all__ = [
-    "Project",
+    "Host",
     "Model",
+    "Project",
+    "generate_build_info",
+    "include",
+    "include_python",
+    "init_build",
+    "project",
 ]
 
 _projectfile_context = ContextVar("project_function_context")
 
 
-# called internally
 def _set_project(c: Project):
     _projectfile_context.set(c)
 
@@ -141,7 +132,6 @@ def include(target: Path | str, dest: Path | str | None = None):
         raise Exception(f"Cannot find include path '{real_target}'.")
     elif real_target.is_dir():
         if dest == ".":
-            # We cannot just copytree, or an "already-existing" error will be raised. Instead, we will copy everything from the target directory to the build directory.
             for item in os.listdir(real_target):
                 item_path = Path(real_target, item)
                 dest_path = Path(ctx.build_dir, item)
@@ -165,148 +155,9 @@ def include_python():
     for root, dirs, files in os.walk(p.source_dir):
         if Path(root) == p.source_dir:
             for filename in files:
-                # include requirements and all python filenames
                 if filename in "requirements.txt" or filename.endswith(".py"):
                     include(filename)
-        # search only top-level modules to include
         elif Path(root).parent == p.source_dir:
             for filename in files:
                 if filename == "__init__.py":
                     include(Path(root).name)
-
-
-class Host:
-    """
-    Provides functionality to interact with remote machines.
-    """
-
-    def __init__(self, host: str):
-        self._host: str = host
-        self._executor_secret: str | None = None
-        self._user: str | None = None
-
-    def set_executor_secret(self, secret: str):
-        self._executor_secret = secret
-
-    def set_user(self, user: str):
-        self._user = user
-
-    def scp(self, from_path: PathLike | str, to_path: PathLike | str, *, port: int = 22):
-        if not self._user:
-            raise Exception("please set user first using a function `host.setUser()`")
-
-        ctx = project()
-        project_source = ctx.source_dir
-
-        from_path = Path(project_source, from_path)
-        to_path = Path(to_path)
-        command = f"scp -r -P {port} {from_path.resolve()} {self._user}@{self._host}:{str(to_path).replace('\\', '/')}"
-        print(f"[host {self._host}] " + command)
-        _, stderr, retcode = call(command)
-        if retcode != 0:
-            raise Exception(f"[host {self._host}] scp failed with retcode {retcode} and error {stderr}")
-
-    def request(self, port: int, route: str, **kwargs) -> httpx.Response:
-        """
-        Send a request to the host.
-        """
-        route = route.lstrip("/")
-        return httpx.post(f"http://{self._host}:{port}/{route}", **kwargs)
-
-    def must_execute(self, command: str, **kwargs) -> tuple[str, str]:
-        retcode, stdout, stderr = self.execute(command, **kwargs)
-        if retcode != 0:
-            raise Exception(f"retcode {retcode} while executing command '{command}', with stderr {stderr}")
-        return stdout, stderr
-
-    def execute(self, command: str, *, background: bool = False, cwd: str | None = None, port: int = 6650) -> tuple[int, str, str]:
-        """
-        Executes a command on the remote server, using `executor` service.
-        """
-        if not self._executor_secret:
-            raise Exception("please set executor secret first using a function `host.setExecutorSecret()`")
-        payload = {
-            "command": command,
-            "background": background,
-        }
-        if cwd:
-            payload["cwd"] = cwd
-
-        response_message = f"[host {self._host}] execute command '{command}'"
-        if background:
-            response_message += f", background {background}"
-        if port != 6650:
-            response_message += f", port {port}"
-        if cwd is not None:
-            response_message += f", cwd '{cwd}'"
-        print(response_message)
-
-        r = self.request(port, "main/execute", json=payload, headers={"secret": self._executor_secret})
-        if r.status_code != 200:
-            raise Exception(f"status error while executing: status {r.status_code}, text {r.text}")
-
-        code, data = core.unwrap_coded_structure(r.content)
-        if code != 0:
-            data = data.decode()
-            raise core.CodeError(1, f"code error while executing: code {code}, text {data}")
-
-        data = json.loads(data)
-        retcode = data["retcode"]
-        stdout = data["stdout"]
-        stderr = data["stderr"]
-        return retcode, stdout, stderr
-
-
-def tar(source_dir: PathLike | str, output_filename: PathLike | str):
-    """Create a .tar.gz archive from the specified directory."""
-    p = project()
-    with tarfile.open(Path(p.source_dir, output_filename), "w:gz") as tar:
-        tar.add(Path(p.source_dir, source_dir), arcname=os.path.basename(source_dir))
-
-
-def untar(tar_gz_path: PathLike | str, extract_path: PathLike | str):
-    """Extract a .tar.gz archive to the specified directory."""
-    p = project()
-    with tarfile.open(Path(p.source_dir, tar_gz_path), "r:gz") as tar:
-        tar.extractall(path=Path(p.source_dir, extract_path))
-
-
-def recycle(*paths: PathLike | str) -> None:
-    """
-    Move paths into the OS recycle bin / trash (recoverable delete).
-
-    Paths are resolved under the project ``source_dir``. On Windows this uses the
-    shell recycle bin; on macOS, Finder trash; on Linux, ``gio trash`` / ``trash-put``
-    when available, otherwise the freedesktop ``~/.local/share/Trash`` layout.
-    """
-    if not paths:
-        return
-    p = project()
-    for path in paths:
-        target = Path(p.source_dir, path).resolve()
-        print(f"Trash '{target}'.")
-        send_to_recycle(target)
-
-
-def rm(*paths: PathLike | str):
-    p = project()
-    new_paths = []
-    for path in paths:
-        new_paths.append(Path(p.source_dir, path))
-    call(f"rm -rf {' '.join([str(x) for x in new_paths])}", p.source_dir)
-
-
-def call(command: str, dir: PathLike | str | None = None) -> tuple[str, str, int]:
-    p = project()
-    if dir is None:
-        d = p.source_dir
-    else:
-        d = Path(p.source_dir, dir)
-    return core.call(command, d)
-
-
-def must_call(command: str, dir: PathLike | str | None = None):
-    p = project()
-    _, stderr, retcode = call(command, dir)
-    if retcode != 0:
-        raise Exception(f"During call of command '{command}', an error occurred: {stderr}")
