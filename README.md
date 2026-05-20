@@ -1,6 +1,6 @@
-# Deployer
+# Installer
 
-`deployer` is a deployment-oriented CLI.
+`installer` is a deployment-oriented CLI.
 
 ## Installation
 
@@ -9,13 +9,13 @@
 Install from PyPI:
 
 ```bash
-python -m pip install deployer
+python -m pip install installer
 ```
 
 Then verify:
 
 ```bash
-deployer version
+installer version
 ```
 
 ### Editable install (for local development)
@@ -29,21 +29,21 @@ python -m pip install -e .
 Then verify:
 
 ```bash
-deployer version
+installer version
 ```
 
 ## CLI
 
 ```bash
-deployer run [-d] [-m MODE] [-t TARGET_DIR] [ARGS...] [--KEY VALUE ...]
-deployer run-all [-d] [-m MODE] [-t TARGET_DIR] [ARGS...] [--KEY VALUE ...]
-deployer version [-d] [-m MODE]
+installer run [-d] [-m MODE] [-t TARGET_DIR] [ARGS...] [--KEY VALUE ...]
+installer run-all [-d] [-m MODE] [-t TARGET_DIR] [ARGS...] [--KEY VALUE ...]
+installer version [-d] [-m MODE]
 ```
 
 - `TARGET_DIR` defaults to current directory.
-- Extra positional values are passed to `deploy.py::main(*args, **kwargs)`.
+- Extra positional values are passed to `install.py::main(*args, **kwargs)`.
 - Extra `--key value` pairs are passed as keyword arguments.
-- `run-all` executes for the target directory and nested directories that also contain both `project.cfg` and `deploy.py`.
+- `run-all` executes for the target directory and nested directories that also contain both `project.cfg` and `install.py`.
 
 ## Required Files
 
@@ -57,10 +57,10 @@ version = 1.0.0
 ```
 
 - `id` must contain exactly two kebab-case lowercase parts: `company.project`.
-- `name` is the deployed project’s display name; `deployer.sdk.project().name` exposes it to `deploy.py` scripts.
-- `version` is the deployed project’s version string (read into `deployer.sdk.project().version`); it is not the `deployer` CLI tool version.
+- `name` is the deployed project’s display name; `installer.sdk.project().name` exposes it to `install.py` scripts.
+- `version` is the deployed project’s version string (read into `installer.sdk.project().version`); it is not the `installer` CLI tool version.
 
-### `deploy.py`
+### `install.py`
 
 ```python
 async def main(*args, **kwargs) -> None:
@@ -74,8 +74,5 @@ The `main` function must be async and accept both `*args` and `**kwargs`.
 Use:
 
 ```python
-import deployer.sdk as sdk
+import installer.sdk as sdk
 ```
-
-This currently maps to the existing SDK implementation while the project transitions from `dome` to `deployer`.
-

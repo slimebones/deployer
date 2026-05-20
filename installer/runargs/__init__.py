@@ -2,7 +2,7 @@ import argparse
 from pathlib import Path
 from typing import Callable
 
-from deployer.core import Model
+from installer.core import Model
 
 
 class RunArgs(Model):

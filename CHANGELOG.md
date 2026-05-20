@@ -1,6 +1,9 @@
+- rebrand to Installer
+- version now is taken from project.cfg
+
 # 2.0.0, 7 May 2026
 
-- rebuilding to Deployer
+- rebuilding to Installer
 - `project.cfg` defines deployed `name` and `version`; SDK `project().name` / `project().version` read from the target project (CLI `-v` removed)
 
 # 1.2.0, 16 April 2026

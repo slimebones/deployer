@@ -3,9 +3,9 @@ import re
 from pathlib import Path
 from types import ModuleType
 
-from deployer import core
-from deployer.core import Model
-from deployer.runargs import RunArgs
+from installer import core
+from installer.core import Model
+from installer.runargs import RunArgs
 
 
 class Project(Model):

@@ -4,10 +4,10 @@ set shell := ["nu", "-c"]
 default: dev
 
 dev:
-    @ python deployer/main.py version
+    @ python installer/main.py version
 
 main *args:
-    @ python deployer/main.py {{args}}
+    @ python installer/main.py {{args}}
 
 test:
     @ pytest tests

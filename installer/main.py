@@ -17,8 +17,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from deployer.project import Project
-from deployer.sdk import _set_project
+from installer.project import Project
+from installer.sdk import _set_project
 
 __version__ = "1.2.0"
 
@@ -41,7 +41,7 @@ def _cfg_scalar(section: configparser.SectionProxy, key: str) -> str:
 
 
 def _build_cli_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="deployer")
+    parser = argparse.ArgumentParser(prog="installer")
     parser.add_argument("-d", "--debug", action="store_true", default=False)
     parser.add_argument("-m", "--mode", default="default")
     parser.add_argument("-t", "--target", default=".")
@@ -128,14 +128,14 @@ def _load_project_config(target_dir: Path) -> DeployTargetConfig:
     return DeployTargetConfig(id=project_id, name=name, version=version)
 
 
-def _load_deploy_module(target_dir: Path) -> ModuleType:
-    deploy_path = target_dir / "deploy.py"
-    if not deploy_path.exists():
-        raise FileNotFoundError(f"deploy entrypoint is not found: '{deploy_path}'")
+def _load_install_module(target_dir: Path) -> ModuleType:
+    install_path = target_dir / "install.py"
+    if not install_path.exists():
+        raise FileNotFoundError(f"install entrypoint is not found: '{install_path}'")
 
-    spec = importlib.util.spec_from_file_location("deployer_target", deploy_path)
+    spec = importlib.util.spec_from_file_location("installer_target", install_path)
     if spec is None or spec.loader is None:
-        raise RuntimeError(f"cannot load module from '{deploy_path}'")
+        raise RuntimeError(f"cannot load module from '{install_path}'")
 
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -145,9 +145,9 @@ def _load_deploy_module(target_dir: Path) -> ModuleType:
 def _resolve_main(module: ModuleType):
     main = getattr(module, "main", None)
     if main is None:
-        raise ValueError("deploy.py must define `main(*args, **kwargs)`")
+        raise ValueError("install.py must define `main(*args, **kwargs)`")
     if not inspect.iscoroutinefunction(main):
-        raise TypeError("deploy.py:main must be async")
+        raise TypeError("install.py:main must be async")
 
     signature = inspect.signature(main)
     has_varargs = any(
@@ -157,7 +157,7 @@ def _resolve_main(module: ModuleType):
         p.kind == inspect.Parameter.VAR_KEYWORD for p in signature.parameters.values()
     )
     if not has_varargs or not has_varkw:
-        raise TypeError("deploy.py:main signature must be async def main(*args, **kwargs)")
+        raise TypeError("install.py:main signature must be async def main(*args, **kwargs)")
     return main
 
 
@@ -184,9 +184,9 @@ async def _run() -> None:
                 os.environ.update(_load_dotenv(project_dir))
 
                 cfg = _load_project_config(project_dir)
-                module = _load_deploy_module(project_dir)
+                module = _load_install_module(project_dir)
                 main = _resolve_main(module)
-                deploy_path = project_dir / "deploy.py"
+                install_path = project_dir / "install.py"
                 project_context = Project(
                     id=cfg.id,
                     domain=None,
@@ -197,18 +197,18 @@ async def _run() -> None:
                     version=cfg.version,
                     debug=parsed.debug,
                     mode=parsed.mode,
-                    file_path=deploy_path,
+                    file_path=install_path,
                     source_dir=project_dir,
                     build_dir=project_dir / "build",
-                    umbrella_file_path=deploy_path,
+                    umbrella_file_path=install_path,
                     umbrella_build_dir=project_dir / "build",
                     umbrella_source_dir=project_dir,
                 )
                 _set_project(project_context)
                 old_cwd = Path.cwd()
                 try:
-                    # Execute each deploy.py from its own project directory.
-                    # This matches expectation for relative file operations in deploy scripts.
+                    # Execute each install.py from its own project directory.
+                    # This matches expectation for relative file operations in install scripts.
                     os.chdir(project_dir)
                     await main(*args, **kwargs)
                 finally:
@@ -229,7 +229,7 @@ def _resolve_targets(target_dir: Path, run_all: bool) -> list[Path]:
     for candidate in sorted([target_dir, *target_dir.rglob("*")]):
         if not candidate.is_dir():
             continue
-        if (candidate / "project.cfg").exists() and (candidate / "deploy.py").exists():
+        if (candidate / "project.cfg").exists() and (candidate / "install.py").exists():
             targets.append(candidate)
     return targets
 

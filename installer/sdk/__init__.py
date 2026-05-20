@@ -21,10 +21,10 @@ except ImportError:
 import colorama
 import httpx
 
-from deployer import core
-from deployer.core import Model
-from deployer.project import Project
-from deployer.sdk._recycle import send_to_recycle
+from installer import core
+from installer.core import Model
+from installer.project import Project
+from installer.sdk._recycle import send_to_recycle
 
 __all__ = [
     "Project",
